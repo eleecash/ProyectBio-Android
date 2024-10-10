@@ -30,10 +30,12 @@ import androidx.work.Data;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
-import com.example.apellido.biometriaandroid.API.PeticionarioRESTWorker;
-import com.example.apellido.biometriaandroid.POJO.Medicion;
-import com.example.apellido.biometriaandroid.LOGIC.Utilidades;
-import com.example.apellido.biometriaandroid.POJO.TramaIBeacon;
+;
+
+import com.example.proyectbio_android.API.PeticionarioRESTWorker;
+import com.example.proyectbio_android.LOGIC.Utilidades;
+import com.example.proyectbio_android.POJO.Medicion;
+import com.example.proyectbio_android.POJO.TramaIBeacon;
 
 import java.util.Arrays;
 import java.util.List;
@@ -352,8 +354,8 @@ public class MainActivity extends AppCompatActivity {
     private void enviarPostPrueba() {
         Data inputData = new Data.Builder()
                 .putString(PeticionarioRESTWorker.KEY_METHOD, "POST")
-                .putString(PeticionarioRESTWorker.KEY_URL, "http://192.168.18.134:3000/mediciones")
-                .putString(PeticionarioRESTWorker.KEY_BODY, "{ \"medida\": 20.25, \"lugar\": \"EPSG\", \"tipo_gas\": \"CO2\", \"hora\": \"2024-09-30 14:00:00\" }")
+                .putString(PeticionarioRESTWorker.KEY_URL, "http://192.168.18.133:3000/mediciones")
+                .putString(PeticionarioRESTWorker.KEY_BODY, "{ \"medida\": 5.25, \"lugar\": \"casitaElenita\", \"tipo_gas\": \"CO\", \"hora\": \"2024-09-30 11:00:00\" }")
                 .build();
         // Start the Worker to make the request
         OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(PeticionarioRESTWorker.class)

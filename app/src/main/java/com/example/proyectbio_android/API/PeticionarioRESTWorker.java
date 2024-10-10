@@ -16,6 +16,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
+import javax.xml.transform.Result;
 /*
  * Nombre del fichero: PeticionarioRESTWorker.java
  * Descripción: Clase que extiende Worker para realizar peticiones REST a la API de mediciones.

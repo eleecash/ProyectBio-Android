@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">ProyectBio-Android</string>
+    <string name="ppm">PPM: </string>
 </resources>
