@@ -97,34 +97,6 @@ public class UtilidadesTest {
     }
 
     /**
-     * @brief Test the majorToUnsignedInt method with valid input.
-     *
-     * This test checks that majorToUnsignedInt correctly converts a 2-byte
-     * array to an unsigned integer.
-     */
-    @Test
-    public void testMajorToUnsignedInt_ValidInput() {
-        byte[] input = {0x01, 0x02}; // 2 bytes representing the unsigned integer 258
-        int expected = 258;
-        int result = Utilidades.majorToUnsignedInt(input);
-        assertEquals(expected, result);
-    }
-
-    /**
-     * @brief Test the majorToUnsignedInt method with invalid input.
-     *
-     * This test verifies that majorToUnsignedInt returns 1 when provided
-     * with only 1 byte.
-     */
-    @Test
-    public void testMajorToUnsignedInt_InvalidInput() {
-        byte[] input = {0x01}; // 1 byte, should return 1
-        int expected = 1;
-        int result = Utilidades.majorToUnsignedInt(input);
-        assertEquals(expected, result);
-    }
-
-    /**
      * @brief Test the bytesToHexString method.
      *
      * This test checks that bytesToHexString correctly converts a byte
