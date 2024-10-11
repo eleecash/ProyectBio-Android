@@ -429,8 +429,8 @@ public class MainActivity extends AppCompatActivity {
     private void POST_TEST_200() {
         Data inputData = new Data.Builder()
                 .putString(PeticionarioRESTWorker.KEY_METHOD, "POST")
-                .putString(PeticionarioRESTWorker.KEY_URL, "http://192.168.18.134:3000/mediciones")
-                .putString(PeticionarioRESTWorker.KEY_BODY, "{ \"medida\": 50.5, \"lugar\": \"zonaelena\", \"tipo_gas\": \"CO\", \"hora\": \"2024-09-26 9:30:00\" }")
+                .putString(PeticionarioRESTWorker.KEY_URL, "http://172.20.10.2:3000/mediciones")
+                .putString(PeticionarioRESTWorker.KEY_BODY, "{ \"medida\": 50.5, \"lugar\": \"zonaelena\", \"tipo_gas\": \"CO\", \"hora\": \"2024-09-26 11:00:00\" }")
                 .build();
         // Start the Worker to make the request
         OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(PeticionarioRESTWorker.class)
