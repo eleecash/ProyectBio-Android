@@ -21,7 +21,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,70 +29,75 @@ import androidx.work.Data;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
-;
 
 import com.example.proyectbio_android.API.PeticionarioRESTWorker;
 import com.example.proyectbio_android.LOGIC.Utilidades;
-import com.example.proyectbio_android.POJO.Medicion;
 import com.example.proyectbio_android.POJO.TramaIBeacon;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-/*
- * Nombre del fichero: MainActivity.java
- * Descripción: Clase principal que maneja la actividad principal de la aplicación de escaneo Bluetooth Low Energy (BTLE).
- *              Esta clase se encarga de la gestión de la conexión Bluetooth, el escaneo de dispositivos BTLE,
- *              la visualización de la información del dispositivo y el envío de datos a través de solicitudes POST.
- * Autores: Carla Rumeu Montesinos y Elena Ruiz De La Blanca
- * Fecha: 30 de Septiembre
- *
- * Este archivo ha sido realizado por Carla Rumeu Montesinos y Elena Ruiz De La Blanca el 30 de Septiembre.
- * Contiene la implementación de las funcionalidades principales para buscar y gestionar dispositivos Bluetooth Low Energy,
- * así como la capacidad de enviar datos a un servidor a través de solicitudes POST.
- *
- * Todos los derechos reservados.
- */
-
+// ------------------------------------------------------------------
+// Header for MainActivity class
 /**
  * @file MainActivity.java
- * @brief Esta es la clase principal que maneja la actividad principal de la aplicación.
+ * @brief Main activity for Bluetooth LE scanning application.
+ * @author Alex Escrivá Caravaca
+ * @date 30/09/2024
  *
- * Esta clase se encarga de la gestión de la conexión Bluetooth, el escaneo de dispositivos Bluetooth,
- * la visualización de la información del dispositivo y el envío de datos a través de POST.
+ * This class handles Bluetooth LE scanning, device detection,
+ * and communication with a REST API for sending data.
+ */
+// ------------------------------------------------------------------
+
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+
+/**
+ * @class MainActivity
+ * @brief Activity class that manages Bluetooth LE scanning and interaction.
+ *
+ * This activity is responsible for scanning Bluetooth Low Energy (LE)
+ * devices, processing scan results, and communicating with a REST API.
  */
 public class MainActivity extends AppCompatActivity {
 
     // --------------------------------------------------------------
     // --------------------------------------------------------------
-    private static final String ETIQUETA_LOG = ">>>>";
+    public static final String ETIQUETA_LOG = ">>>>"; ///< Log tag for logging output
 
     // --------------------------------------------------------------
     // --------------------------------------------------------------
-    private BluetoothLeScanner elEscanner;
+    public BluetoothLeScanner elEscanner; ///< Bluetooth LE scanner instance
 
-    private ScanCallback callbackDelEscaneo = null;
+    ScanCallback callbackDelEscaneo = null; ///< Callback for Bluetooth scan results
 
-    private final String uuidString = "quierocafecafeee";
-    private TramaIBeacon tib;
+    private final String uuidString = "holaMundoNosVemo"; ///< UUID to filter scanned device
+    TramaIBeacon tib; ///< Object to hold iBeacon data
 
-    // Variable para seguir el estado del escaneo
-    private boolean isScanning = false;
+    // Variable per a seguir l'estat de l'escaneig
+    boolean isScanningOurBeacon = false; ///< Indicates if our specific beacon is being scanned
+    boolean isScanning = false; ///< General scanning status
 
-    public TextView showMajor;
-    public Button enviarPostPrueba;
-    public Button EncenderEnvioPost;
+    public TextView showMajor;  ///< TextView for displaying the major value
+    public Button enviarPostPrueba; ///< Button for sending test POST request
+    public Button EncenderEnvioPost; ///< Button for enabling post sending
 
 
 
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
     /**
-     * @brief Método para buscar todos los dispositivos Bluetooth Low Energy (BTLE) disponibles.
+     * @brief Starts scanning for Bluetooth LE devices.
      *
-     * Este método inicia un escaneo de dispositivos BTLE y registra un callback para manejar los resultados del escaneo.
+     * This method initializes the scan callback and starts scanning
+     * for Bluetooth LE devices. It checks for necessary permissions
+     * and logs the results.
+     *
+     * @return void
      */
-    // buscarTodosLosDispositivosBTLE()
-    private void buscarTodosLosDispositivosBTLE() {
+    void buscarTodosLosDispositivosBTLE() {
         Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): empieza ");
 
         Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): instalamos scan callback ");
@@ -131,16 +135,22 @@ public class MainActivity extends AppCompatActivity {
         }
         this.elEscanner.startScan(this.callbackDelEscaneo);
 
+        isScanning = true;
+
     } // ()
 
+    // --------------------------------------------------------------
     /**
-     * @brief Método para mostrar la información de un dispositivo BTLE escaneado.
+     * @brief Displays information about detected Bluetooth LE device.
      *
-     * Este método recibe un resultado de escaneo y muestra la información relevante del dispositivo BTLE.
+     * This method logs information about the detected device, including
+     * its name, address, RSSI, and iBeacon data.
      *
-     * @param resultado El resultado del escaneo de un dispositivo BTLE.
+     * @param resultado The ScanResult containing the detected device's information.
+     *
+     * @return void
      */
-    //resultado: ScanResult -> mostrarInformacionDispositivoBTLE()
+    // --------------------------------------------------------------
     private void mostrarInformacionDispositivoBTLE(ScanResult resultado) {
 
 
@@ -168,34 +178,39 @@ public class MainActivity extends AppCompatActivity {
         TramaIBeacon tib = new TramaIBeacon(bytes);
 
         Log.d(ETIQUETA_LOG, " ----------------------------------------------------");
-        Log.d(ETIQUETA_LOG, " prefijo  = " + Utilidades.bytesToHexString(tib.getPrefijo()));
-        Log.d(ETIQUETA_LOG, "          advFlags = " + Utilidades.bytesToHexString(tib.getAdvFlags()));
-        Log.d(ETIQUETA_LOG, "          advHeader = " + Utilidades.bytesToHexString(tib.getAdvHeader()));
-        Log.d(ETIQUETA_LOG, "          companyID = " + Utilidades.bytesToHexString(tib.getCompanyID()));
-        Log.d(ETIQUETA_LOG, "          iBeacon type = " + Integer.toHexString(tib.getiBeaconType()));
+        Log.d(ETIQUETA_LOG, " prefijo  = " + Utilidades.bytesToHexString(tib.getPrefijo())); // Log the prefix
+        Log.d(ETIQUETA_LOG, "          advFlags = " + Utilidades.bytesToHexString(tib.getAdvFlags())); // Log advertising flags
+        Log.d(ETIQUETA_LOG, "          advHeader = " + Utilidades.bytesToHexString(tib.getAdvHeader())); // Log advertising header
+        Log.d(ETIQUETA_LOG, "          companyID = " + Utilidades.bytesToHexString(tib.getCompanyID())); // Log company ID
+        Log.d(ETIQUETA_LOG, "          iBeacon type = " + Integer.toHexString(tib.getiBeaconType())); // Log iBeacon type
         Log.d(ETIQUETA_LOG, "          iBeacon length 0x = " + Integer.toHexString(tib.getiBeaconLength()) + " ( "
-                + tib.getiBeaconLength() + " ) ");
-        Log.d(ETIQUETA_LOG, " uuid  = " + Utilidades.bytesToHexString(tib.getUUID()));
-        Log.d(ETIQUETA_LOG, " uuid  = " + Utilidades.bytesToString(tib.getUUID()));
+                + tib.getiBeaconLength() + " ) ");  // Log iBeacon length
+        Log.d(ETIQUETA_LOG, " uuid  = " + Utilidades.bytesToHexString(tib.getUUID())); // Log UUID
+        Log.d(ETIQUETA_LOG, " uuid  = " + Utilidades.bytesToString(tib.getUUID())); // Log UUID as string
         Log.d(ETIQUETA_LOG, " major  = " + Utilidades.bytesToHexString(tib.getMajor()) + "( "
-                + Utilidades.bytesToInt(tib.getMajor()) + " ) ");
+                + Utilidades.bytesToInt(tib.getMajor()) + " ) "); // Log major value
         Log.d(ETIQUETA_LOG, " minor  = " + Utilidades.bytesToHexString(tib.getMinor()) + "( "
-                + Utilidades.bytesToInt(tib.getMinor()) + " ) ");
+                + Utilidades.bytesToInt(tib.getMinor()) + " ) "); // Log minor value
         Log.d(ETIQUETA_LOG, " txPower  = " + Integer.toHexString(tib.getTxPower()) + " ( " + tib.getTxPower() + " )");
-        Log.d(ETIQUETA_LOG, " ******");
+        Log.d(ETIQUETA_LOG, " ******"); // Log txPower value
 
     } // ()
+    // --------------------------------------------------------------
     /**
-     * @brief Método para buscar un dispositivo BTLE específico.
+     * @brief Scans for a specific Bluetooth LE device.
      *
-     * Este método inicia un escaneo de dispositivos BTLE y registra un callback para manejar los resultados del escaneo.
-     * Solo se procesan los resultados que corresponden a un dispositivo BTLE específico.
+     * This method initializes the scan callback for scanning a specific
+     * Bluetooth LE device identified by the uuidString. It logs the results
+     * and retrieves the corresponding iBeacon information if found.
+     *
+     * @return void
      */
-    // buscarEsteDispositivoBTLE()
+    // --------------------------------------------------------------
     private void buscarEsteDispositivoBTLE() {
         Log.d(ETIQUETA_LOG, " buscarEsteDispositivoBTLE(): empieza ");
 
         Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): instalamos scan callback ");
+
 
         this.callbackDelEscaneo = new ScanCallback() {
             @Override
@@ -231,20 +246,23 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Iniciar escaneo con filtro
+        // Iniciar escaneig amb filtre
         this.elEscanner.startScan(this.callbackDelEscaneo);
 
-        // saber si el sensor está escaneando
-        isScanning = true;
+        // Know if the sensor scan is running
+        isScanningOurBeacon = true;
     } // ()
 
+    // --------------------------------------------------------------
     /**
-     * @brief Método para detener la búsqueda de dispositivos BTLE.
+     * @brief Shows the major value of the detected iBeacon.
      *
-     * Este método detiene el escaneo de dispositivos BTLE que se inició previamente.
+     * This method updates the TextView to display the major value
+     * of the detected iBeacon, if available.
+     *
+     * @return void
      */
-
-    // detenerBusquedaDispositivosBTLE()
+    // --------------------------------------------------------------
     private void detenerBusquedaDispositivosBTLE() {
 
         if (this.callbackDelEscaneo == null) {
@@ -259,19 +277,26 @@ public class MainActivity extends AppCompatActivity {
 
     } // ()
 
+    // --------------------------------------------------------------
     /**
-     * @brief Método para mostrar el valor Major de un dispositivo iBeacon.
+     * @brief Updates the display with the major value of the detected iBeacon.
      *
-     * Este método muestra el valor Major de un dispositivo iBeacon si el escaneo está en curso.
+     * This method checks if the scanning for the specific iBeacon is active.
+     * If so, it retrieves the major value from the tib object, converts it
+     * to an integer, and updates the showMajor TextView to display this value.
+     * If scanning is not active, it logs a message indicating that scanning
+     * is not currently taking place.
+     *
+     * @return void
      */
-    // showMajor()
-    private void showMajor() {
+    // --------------------------------------------------------------
+    void showMajor() {
         Log.d(ETIQUETA_LOG, " showMajor()");
 
         // Comprovar si s'està escanejant
-        if (isScanning) {
+        if (isScanningOurBeacon) {
 
-            String display = getString(R.string.ppm) + (Arrays.toString(tib.getMajor()));
+            String display = getString(R.string.ppm) + (Utilidades.bytesToInt(tib.getMajor()));
             Log.d(ETIQUETA_LOG, " Major: " + display);
             showMajor.setText(display);
 
@@ -280,82 +305,132 @@ public class MainActivity extends AppCompatActivity {
         }
     } // ()
 
+    // --------------------------------------------------------------
     /**
-     * @brief Método para manejar el evento de pulsar el botón de búsqueda de dispositivos BTLE.
+     * @brief Handles the button click event for searching Bluetooth LE devices.
      *
-     * Este método se invoca cuando se pulsa el botón de búsqueda de dispositivos BTLE.
+     * This method is called when the button for searching Bluetooth LE devices
+     * is pressed. It logs the button press event and initiates the scanning
+     * process by calling the buscarTodosLosDispositivosBTLE() method.
      *
-     * @param v La vista del botón pulsado.
+     * @param v The View that was clicked, typically the button.
+     *
+     * @return void
      */
-    // v: View -> botonBuscarDispositivosBTLEPulsado()
+    // --------------------------------------------------------------
     public void botonBuscarDispositivosBTLEPulsado(View v) {
         Log.d(ETIQUETA_LOG, " boton buscar dispositivos BTLE Pulsado");
         this.buscarTodosLosDispositivosBTLE();
     } // ()
 
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
     /**
-     * @brief Método para manejar el evento de pulsar el botón de búsqueda de nuestro dispositivo BTLE.
+     * @brief Handles the button click event for searching a specific Bluetooth LE device.
      *
-     * Este método se invoca cuando se pulsa el botón de búsqueda de nuestro dispositivo BTLE.
+     * This method is called when the button for searching a specific Bluetooth LE device
+     * is pressed. It logs the button press event and initiates the scanning process
+     * for the specific device by calling the buscarEsteDispositivoBTLE() method.
      *
-     * @param v La vista del botón pulsado.
+     * @param v The View that was clicked, typically the button.
+     *
+     * @return void
      */
-    // v: View -> botonBuscarNuestroDispositivoBTLEPulsado()
+    // --------------------------------------------------------------
     public void botonBuscarNuestroDispositivoBTLEPulsado(View v) {
         Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado");
         this.buscarEsteDispositivoBTLE();
     } // ()
 
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
     /**
-     * @brief Método para manejar el evento de pulsar el botón de detener la búsqueda de dispositivos BTLE.
+     * @brief Handles the button click event for stopping the Bluetooth LE device search.
      *
-     * Este método se invoca cuando se pulsa el botón de detener la búsqueda de dispositivos BTLE.
+     * This method is called when the button for stopping the search for Bluetooth LE
+     * devices is pressed. It logs the button press event and calls the
+     * detenerBusquedaDispositivosBTLE() method to stop the scanning process.
      *
-     * @param v La vista del botón pulsado.
+     * @param v The View that was clicked, typically the button.
+     *
+     * @return void
      */
-    // v: View -> botonDetenerBusquedaDispositivosBTLEPulsado()
+    // --------------------------------------------------------------
     public void botonDetenerBusquedaDispositivosBTLEPulsado(View v) {
         Log.d(ETIQUETA_LOG, " boton detener busqueda dispositivos BTLE Pulsado");
         this.detenerBusquedaDispositivosBTLE();
     } // ()
 
+    // --------------------------------------------------------------
     /**
-     * @brief Método para manejar el evento de pulsar el botón de enviar un POST de prueba.
+     * @brief Handles the button click event for sending a test POST request.
      *
-     * Este método se invoca cuando se pulsa el botón de enviar un POST de prueba.
+     * This method is called when the button for sending a test POST request is pressed.
+     * It logs the button press event and invokes the enviarPostPrueba() method
+     * to initiate the sending of the test data.
      *
-     * @param v La vista del botón pulsado.
+     * @param v The View that was clicked, typically the button.
+     *
+     * @return void
      */
-    // v: View -> botonEnviarPostPrueba()
+    // --------------------------------------------------------------
+
     public void botonEnviarPostPrueba(View v) {
         Log.d(ETIQUETA_LOG, " boton Enviar Post Pulsado");
         this.enviarPostPrueba();
     }
 
-    /**
-     * @brief Método para manejar el evento de pulsar el botón de enviar el último valor Major.
-     *
-     * Este método se invoca cuando se pulsa el botón de enviar el último valor Major.
-     *
-     * @param v La vista del botón pulsado.
-     */
-    // v: View -> botonEnviarLastMajor()
+    //----------------------------------------------------------------
+    //----------------------------------------------------------------
+
     public void botonEnviarLastMajor(View v) {
         Log.d(ETIQUETA_LOG, " boton Enviar Last Major Pulsado");
         this.enviarLastMajor();
     }
 
+    //---------------------------------------------------------------
     /**
-     * @brief Método para enviar un POST de prueba.
+     * @brief Handles the button click event for sending the last detected major value.
      *
-     * Este método crea una solicitud de trabajo para enviar un POST de prueba a una URL específica.
+     * This method is invoked when the button for sending the last detected major value
+     * is pressed. It logs the button press event and calls the enviarLastMajor()
+     * method to send the last major data to the server.
+     *
+     * @param v The View that was clicked, typically the button.
+     *
+     * @return void
      */
-    // enviarPostPrueba()
+    //---------------------------------------------------------------
+
+    /**
+     * @brief Initiates the process of sending a test POST request.
+     *
+     * This private method is called to start the POST request sequence.
+     * It invokes the POST_TEST_200() method, which constructs the request
+     * and sends it to the specified URL.
+     *
+     * @return void
+     */
     private void enviarPostPrueba() {
+        POST_TEST_200();
+    }
+
+    // --------------------------------------------------------------
+    /**
+     * @brief Constructs and enqueues a OneTimeWorkRequest for sending test data.
+     *
+     * This private method builds the input data required for the POST request,
+     * including the HTTP method, URL, and body containing the measurement details.
+     * It then creates a OneTimeWorkRequest and enqueues it with the WorkManager
+     * to perform the network operation asynchronously.
+     *
+     * @return void
+     */
+    private void POST_TEST_200() {
         Data inputData = new Data.Builder()
                 .putString(PeticionarioRESTWorker.KEY_METHOD, "POST")
-                .putString(PeticionarioRESTWorker.KEY_URL, "http://192.168.18.133:3000/mediciones")
-                .putString(PeticionarioRESTWorker.KEY_BODY, "{ \"medida\": 5.25, \"lugar\": \"casitaElenita\", \"tipo_gas\": \"CO\", \"hora\": \"2024-09-30 11:00:00\" }")
+                .putString(PeticionarioRESTWorker.KEY_URL, "http://172.20.10.2:3000/mediciones")
+                .putString(PeticionarioRESTWorker.KEY_BODY, "{ \"medida\": 50.5, \"lugar\": \"zonaelena\", \"tipo_gas\": \"CO\", \"hora\": \"2024-09-26 11:00:00\" }")
                 .build();
         // Start the Worker to make the request
         OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(PeticionarioRESTWorker.class)
@@ -365,42 +440,24 @@ public class MainActivity extends AppCompatActivity {
         WorkManager.getInstance(this).enqueue(workRequest);
     }
 
-    /**
-     * @brief Método para enviar el último valor Major.
-     *
-     * Este método crea una solicitud de trabajo para enviar el último valor Major a una URL específica.
-     */
-    //  enviarLastMajor()
+    //--------------------------------------------------------------
+    //--------------------------------------------------------------
     private void enviarLastMajor() {
-        if(tib == null) {
-            Toast.makeText(this, "No hay datos disponibles", Toast.LENGTH_SHORT).show();
-            return;
-
-        }
-        Medicion medicion = new Medicion( Utilidades.bytesToIntOK(tib.getMajor()), "Zona Industrial", "CO2");
-        Log.d(ETIQUETA_LOG, " Medicion: " + medicion.toString());
-        String json = medicion.toJson();
-        Log.d(ETIQUETA_LOG, " JSON: " + json);
-        Data inputData = new Data.Builder()
-                .putString(PeticionarioRESTWorker.KEY_METHOD, "POST")
-                .putString(PeticionarioRESTWorker.KEY_URL, "http://192.168.18.134:3000/mediciones")
-                .putString(PeticionarioRESTWorker.KEY_BODY, json)
-                .build();
-        OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(PeticionarioRESTWorker.class)
-                .setInputData(inputData)
-                .build();
-
-        WorkManager.getInstance(this).enqueue(workRequest);
+        PeticionarioRESTWorker.POST(tib, this);
     }
 
     /**
-     * @brief Método para manejar la creación de la actividad.
+     * @brief Sets up the activity and initializes UI components.
      *
-     * Este método se invoca cuando se crea la actividad. Se encarga de la inicialización de la actividad.
+     * This method is called when the activity is created. It sets
+     * the content view, initializes UI components, and sets up button
+     * click listeners for sending data to the server.
      *
-     * @param savedInstanceState El estado guardado de la instancia.
+     * @param savedInstanceState Bundle object containing activity state.
+     *
+     * @return void
      */
-    // savedInstanceState: Bundle -> onCreate()
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -420,15 +477,21 @@ public class MainActivity extends AppCompatActivity {
 
     } // ()
 
+    //----------------------------------------------------------------
     /**
-     * @brief Lanzador de resultados de actividad para solicitar permisos.
+     * @brief Launcher for requesting permissions at runtime.
      *
-     * Este lanzador de resultados de actividad se registra para el resultado de una solicitud de permiso.
-     * Si el permiso es concedido, se registra un mensaje de éxito en el log.
-     * Si el permiso es denegado, se registra un mensaje de error en el log.
+     * This final variable holds an instance of ActivityResultLauncher that
+     * is responsible for requesting a specific permission from the user.
+     * The result of the permission request is handled through a callback.
+     *
+     * @note This is initialized with registerForActivityResult() and uses
+     * the RequestPermission contract to handle the permission request.
+     * When the user responds, it logs whether the permission was granted or denied.
      */
-    // RequestPermission, isGranted -> onRequestPermissionResult() -> [Texto]
-    private final ActivityResultLauncher<String> requestPermissionLuancher =
+    //----------------------------------------------------------------
+
+    final ActivityResultLauncher<String> requestPermissionLuancher =
             registerForActivityResult(new RequestPermission(), isGranted ->
             {
                 if (isGranted) {
