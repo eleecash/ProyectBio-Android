@@ -1,10 +1,12 @@
 package com.example.proyectbio_android;
 
 import static android.Manifest.permission.BLUETOOTH_CONNECT;
+import static android.content.ContentValues.TAG;
 
 import static androidx.activity.result.contract.ActivityResultContracts.*;
 
 import android.Manifest.permission;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -17,10 +19,12 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.pm.PackageManager;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AppCompatActivity;
@@ -32,11 +36,16 @@ import androidx.work.WorkManager;
 
 import com.example.proyectbio_android.API.PeticionarioRESTWorker;
 import com.example.proyectbio_android.LOGIC.Utilidades;
+import com.example.proyectbio_android.POJO.PrincipalActivity;
 import com.example.proyectbio_android.POJO.TramaIBeacon;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import androidx.annotation.Nullable;
+
 
 // ------------------------------------------------------------------
 // Header for MainActivity class
@@ -83,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
     public TextView showMajor;  ///< TextView for displaying the major value
     public Button enviarPostPrueba; ///< Button for sending test POST request
     public Button EncenderEnvioPost; ///< Button for enabling post sending
+
+    private String qrResult;
 
 
 
@@ -207,10 +218,18 @@ public class MainActivity extends AppCompatActivity {
      */
     // --------------------------------------------------------------
     private void buscarEsteDispositivoBTLE() {
-        Log.d(ETIQUETA_LOG, " buscarEsteDispositivoBTLE(): empieza ");
+        Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): empieza");
 
-        Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): instalamos scan callback ");
+        // Verifica si se tienen los permisos de escaneo de Bluetooth
+        if (ActivityCompat.checkSelfPermission(this, permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                requestPermissionLuancher.launch(permission.BLUETOOTH_SCAN);
+            }
+            return; // Salir del método si no hay permisos
+        }
 
+        // Mostrar un Toast indicando que se está buscando un beacon
+        Toast.makeText(this, "Buscando beacon...", Toast.LENGTH_SHORT).show();
 
         this.callbackDelEscaneo = new ScanCallback() {
             @Override
@@ -218,40 +237,55 @@ public class MainActivity extends AppCompatActivity {
                 super.onScanResult(callbackType, resultado);
                 byte[] bytes = Objects.requireNonNull(resultado.getScanRecord()).getBytes();
                 TramaIBeacon scan = new TramaIBeacon(bytes);
-                if ( uuidString.equals(Utilidades.bytesToString(scan.getUUID())) ) {
-                    mostrarInformacionDispositivoBTLE(resultado);
-                    tib = scan;
-                    showMajor();
+
+                // Verifica si el UUID es igual a ELENAELENAELENAE
+                String beaconContent = Utilidades.bytesToString(scan.getUUID()); // Asume que el UUID es el contenido
+                if (beaconContent.equals(qrResult)) {
+
+                    try {
+                        elEscanner.stopScan(new ScanCallback() {
+                            @Override
+                            public void onScanResult(int callbackType, ScanResult result) {
+                                super.onScanResult(callbackType, result);
+                            }
+                        });
+                    } catch (SecurityException e) {
+                        Log.e(TAG, "onScanResult: ",e);
+                    }
+
+                    // Mostrar un Toast cuando se detecta el beacon con el UUID específico
+                    Toast.makeText(MainActivity.this, "Beacon detectado: " + beaconContent, Toast.LENGTH_SHORT).show();
+
+                    // Lanzar la nueva actividad al detectar el beacon
+                    Intent intent = new Intent(MainActivity.this, PrincipalActivity.class);
+                    startActivity(intent);
                 }
             }
 
             @Override
             public void onBatchScanResults(List<ScanResult> results) {
                 super.onBatchScanResults(results);
-                Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onBatchScanResults() ");
+                Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): onBatchScanResults()");
             }
 
             @Override
             public void onScanFailed(int errorCode) {
                 super.onScanFailed(errorCode);
-                Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onScanFailed() ");
+                Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): onScanFailed()");
             }
         };
 
-        Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): empezamos");
+        Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): empezamos");
 
-        if (ActivityCompat.checkSelfPermission(this, permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                requestPermissionLuancher.launch(permission.BLUETOOTH_SCAN);
-            }
+        try {
+            // Iniciar escaneo
+            this.elEscanner.startScan(this.callbackDelEscaneo);
+            isScanningOurBeacon = true;
+        } catch (SecurityException e) {
+            Log.e(ETIQUETA_LOG, "Error al iniciar el escaneo: " + e.getMessage());
+            Toast.makeText(this, "Permisos necesarios no otorgados.", Toast.LENGTH_SHORT).show();
         }
-
-        // Iniciar escaneig amb filtre
-        this.elEscanner.startScan(this.callbackDelEscaneo);
-
-        // Know if the sensor scan is running
-        isScanningOurBeacon = true;
-    } // ()
+    }
 
     // --------------------------------------------------------------
     /**
@@ -463,6 +497,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Button buttonQR = findViewById(R.id.button_qr);
+        buttonQR.setOnClickListener(v -> openQRCodeScanner());
+
         //SET XML VARIABLES
         showMajor = findViewById(R.id.showMajor);
         enviarPostPrueba = findViewById(R.id.enviarPostPrueba);
@@ -476,6 +513,54 @@ public class MainActivity extends AppCompatActivity {
         this.elEscanner = elAdaptadorBT.getBluetoothLeScanner();
 
     } // ()
+
+    private void openQRCodeScanner() {
+        IntentIntegrator integrator = new IntentIntegrator(this);
+        integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE);
+        integrator.setPrompt("Escanea un código QR");
+        integrator.setCameraId(0); // Usa la cámara trasera
+        integrator.setBeepEnabled(true);
+        integrator.setBarcodeImageEnabled(true);
+        integrator.initiateScan();
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if (result != null) {
+            if (result.getContents() == null) {
+                // El usuario canceló el escaneo
+                Toast.makeText(this, "Escaneo cancelado", Toast.LENGTH_SHORT).show();
+            } else {
+                // Aquí procesas el contenido del QR escaneado
+                String qrContent = result.getContents();
+
+                // Verifica si el contenido tiene exactamente 16 caracteres
+                if (qrContent.length() == 16) {
+                    // Si el texto tiene 16 caracteres, muestra el contenido del QR
+                    Toast.makeText(this, "Contenido del QR válido: " + qrContent, Toast.LENGTH_LONG).show();
+                    qrResult = qrContent;
+
+                    // Esperar 5 segundos (5000 ms) antes de comenzar a escanear el beacon
+                    new Handler().postDelayed(() -> {
+                        // Aquí inicias el escaneo del beacon
+                        comenzarEscaneoBeacon();
+
+                    }, 5000);  // Tiempo de espera en milisegundos (5 segundos en este caso)
+
+                } else {
+                    // Si no tiene 16 caracteres, muestra un mensaje de QR no válido
+                    Toast.makeText(this, "QR no válido.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    private void comenzarEscaneoBeacon() {
+        // Inicia el proceso para escanear beacons BLE
+        this.buscarEsteDispositivoBTLE();
+    }
 
     //----------------------------------------------------------------
     /**
